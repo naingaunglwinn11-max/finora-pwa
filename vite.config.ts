@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  base: "./",
   plugins: [
     react(),
     VitePWA({
@@ -20,13 +21,13 @@ export default defineConfig({
         background_color: "#f4faf7",
         icons: [
           {
-            src: "/icons/icon-192.png",
+            src: "icons/icon-192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any maskable"
           },
           {
-            src: "/icons/icon-512.png",
+            src: "icons/icon-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable"
@@ -35,7 +36,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp}"],
-        navigateFallback: "/index.html",
+        navigateFallback: "index.html",
         cleanupOutdatedCaches: true
       }
     })

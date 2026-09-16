@@ -1,0 +1,66 @@
+:root {
+  color-scheme: light dark;
+  --finora-bg: #f4faf7;
+  --finora-surface: #ffffff;
+  --finora-surface-raised: #fbfefd;
+  --finora-surface-muted: #eaf3ef;
+  --finora-surface-pressed: #dceee7;
+  --finora-border: #dce8e3;
+  --finora-text-primary: #10221f;
+  --finora-text-secondary: #687973;
+  --finora-text-muted: #899893;
+  --finora-accent: #087f6d;
+  --finora-accent-strong: #053f39;
+  --finora-positive: #12834d;
+  --finora-negative: #c74235;
+  --finora-transfer: #316fa8;
+  --finora-shadow-sm: 0 6px 16px rgba(10, 44, 38, 0.08);
+  --finora-shadow-md: 0 16px 34px rgba(10, 44, 38, 0.12);
+  --finora-shadow-nav: 0 -8px 26px rgba(10, 44, 38, 0.08);
+
+  --bg: var(--finora-bg);
+  --surface: var(--finora-surface);
+  --surface-2: var(--finora-surface-muted);
+  --surface-3: var(--finora-surface-pressed);
+  --text: var(--finora-text-primary);
+  --muted: var(--finora-text-secondary);
+  --line: var(--finora-border);
+  --accent: var(--finora-accent);
+  --accent-strong: var(--finora-accent-strong);
+  --income: var(--finora-positive);
+  --expense: var(--finora-negative);
+  --transfer: var(--finora-transfer);
+  --shadow: var(--finora-shadow-md);
+}
+
+:root[data-theme="dark"] {
+  --finora-bg: #091513;
+  --finora-surface: #12231f;
+  --finora-surface-raised: #172b26;
+  --finora-surface-muted: #1a302b;
+  --finora-surface-pressed: #203c35;
+  --finora-border: #28443d;
+  --finora-text-primary: #effaf6;
+  --finora-text-secondary: #9bb0aa;
+  --finora-text-muted: #738983;
+  --finora-shadow-sm: 0 7px 18px rgba(0, 0, 0, 0.18);
+  --finora-shadow-md: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --finora-shadow-nav: 0 -10px 30px rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --finora-bg: #091513;
+    --finora-surface: #12231f;
+    --finora-surface-raised: #172b26;
+    --finora-surface-muted: #1a302b;
+    --finora-surface-pressed: #203c35;
+    --finora-border: #28443d;
+    --finora-text-primary: #effaf6;
+    --finora-text-secondary: #9bb0aa;
+    --finora-text-muted: #738983;
+    --finora-shadow-sm: 0 7px 18px rgba(0, 0, 0, 0.18);
+    --finora-shadow-md: 0 18px 42px rgba(0, 0, 0, 0.28);
+    --finora-shadow-nav: 0 -10px 30px rgba(0, 0, 0, 0.2);
+  }
+}

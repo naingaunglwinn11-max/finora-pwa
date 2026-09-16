@@ -1,5 +1,5 @@
 import { db, getSettings } from "../db/db";
-import type { Account, Category, FinanceTransaction, FinoraBackup, Settings } from "../types/finance";
+import type { Account, Category, FinanceTransaction, FinoraBackup, MerchantRule, Settings } from "../types/finance";
 
 export async function createBackup(): Promise<FinoraBackup> {
   return {
@@ -8,7 +8,8 @@ export async function createBackup(): Promise<FinoraBackup> {
     accounts: await db.accounts.toArray(),
     categories: await db.categories.toArray(),
     transactions: await db.transactions.toArray(),
-    settings: await getSettings()
+    settings: await getSettings(),
+    merchantRules: await db.merchantRules.toArray()
   };
 }
 
@@ -21,6 +22,7 @@ export function validateBackup(value: unknown): FinoraBackup {
   if (!backup.accounts.some((account) => isAccount(account) && account.id === "cash")) throw new Error("Backup is missing Cash.");
   if (!backup.accounts.some((account) => isAccount(account) && account.id === "kbzpay")) throw new Error("Backup is missing KBZPay.");
   if (!backup.transactions.every(isTransaction)) throw new Error("Backup contains invalid transactions.");
+  if (backup.merchantRules && !backup.merchantRules.every(isMerchantRule)) throw new Error("Backup contains invalid merchant rules.");
   if (!backup.categories.every(isCategory)) throw new Error("Backup contains invalid categories.");
   if (!isSettings(backup.settings)) throw new Error("Backup contains invalid settings.");
   return backup as FinoraBackup;
@@ -28,14 +30,16 @@ export function validateBackup(value: unknown): FinoraBackup {
 
 export async function restoreBackup(backup: FinoraBackup): Promise<void> {
   validateBackup(backup);
-  await db.transaction("rw", db.accounts, db.categories, db.transactions, db.settings, async () => {
+  await db.transaction("rw", db.accounts, db.categories, db.transactions, db.merchantRules, db.settings, async () => {
     await db.accounts.clear();
     await db.categories.clear();
     await db.transactions.clear();
+    await db.merchantRules.clear();
     await db.settings.clear();
     await db.accounts.bulkPut(backup.accounts);
     await db.categories.bulkPut(backup.categories);
     await db.transactions.bulkPut(backup.transactions);
+    if (backup.merchantRules?.length) await db.merchantRules.bulkPut(backup.merchantRules);
     await db.settings.put({ ...backup.settings, id: "settings" });
   });
 }
@@ -69,7 +73,17 @@ function isTransaction(value: unknown): value is FinanceTransaction {
     && typeof value.amount === "number"
     && Number.isSafeInteger(value.amount)
     && value.amount >= 0
+    && (typeof value.transactionDateTime === "undefined" || typeof value.transactionDateTime === "string")
     && (value.accountId === "cash" || value.accountId === "kbzpay");
+}
+
+function isMerchantRule(value: unknown): value is MerchantRule {
+  return isRecord(value)
+    && typeof value.id === "string"
+    && typeof value.normalizedMerchant === "string"
+    && typeof value.categoryId === "string"
+    && typeof value.lastUsedAt === "string"
+    && typeof value.usageCount === "number";
 }
 
 function isSettings(value: unknown): value is Settings {

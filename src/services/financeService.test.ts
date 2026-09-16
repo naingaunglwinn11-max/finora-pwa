@@ -6,9 +6,11 @@ import {
   getMonthlyExpenses,
   getMonthlyIncome,
   getMonthlyNet,
-  getTransactionsByAccount
+  getTransactionsByAccount,
+  validateAvailableBalance
 } from "./financeService";
 import { validateBackup } from "./backupService";
+import { formatTransactionTime, transactionDateKey } from "../utils/dates";
 
 const accounts: Account[] = [
   { id: "cash", systemIdentifier: "cash", name: "Cash", type: "cash", icon: "cash", createdAt: "2026-09-01", isActive: true },
@@ -29,6 +31,7 @@ function tx(partial: Partial<FinanceTransaction>): FinanceTransaction {
     destinationAccountId: partial.destinationAccountId,
     categoryId: partial.categoryId,
     date: partial.date ?? "2026-09-16",
+    transactionDateTime: partial.transactionDateTime,
     note: partial.note ?? "",
     createdAt: partial.createdAt ?? "2026-09-16T00:00:00.000Z",
     updatedAt: partial.updatedAt ?? "2026-09-16T00:00:00.000Z"
@@ -36,6 +39,12 @@ function tx(partial: Partial<FinanceTransaction>): FinanceTransaction {
 }
 
 describe("financeService", () => {
+  it("fresh accounts start at zero with no automatic opening transaction", () => {
+    expect(calculateAccountBalance("cash", [])).toBe(0);
+    expect(calculateAccountBalance("kbzpay", [])).toBe(0);
+    expect(calculateTotalBalance(accounts, [])).toBe(0);
+  });
+
   it("income increases Cash and KBZPay", () => {
     const transactions = [
       tx({ type: "income", amount: 100_000, accountId: "cash" }),
@@ -78,6 +87,28 @@ describe("financeService", () => {
     expect(getMonthlyNet(transactions, "2026-09")).toBe(85_000);
   });
 
+  it("legacy opening balance affects balance only, not monthly income or net", () => {
+    const transactions = [
+      tx({ type: "openingBalance", amount: 100_000, accountId: "cash" }),
+      tx({ type: "openingBalance", amount: 200_000, accountId: "kbzpay" })
+    ];
+    expect(calculateAccountBalance("cash", transactions)).toBe(100_000);
+    expect(calculateAccountBalance("kbzpay", transactions)).toBe(200_000);
+    expect(calculateTotalBalance(accounts, transactions)).toBe(300_000);
+    expect(getMonthlyIncome(transactions, "2026-09")).toBe(0);
+    expect(getMonthlyNet(transactions, "2026-09")).toBe(0);
+  });
+
+  it("rejects expenses and transfers greater than available balance", () => {
+    const transactions = [
+      tx({ type: "income", amount: 50_000, accountId: "cash" })
+    ];
+    const accountNames = { cash: "Cash", kbzpay: "KBZPay" } as const;
+    expect(validateAvailableBalance(tx({ type: "expense", amount: 100_000, accountId: "cash" }), transactions, accountNames)).toBe("Cash only has 50,000 MMK available.");
+    expect(validateAvailableBalance(tx({ type: "transfer", amount: 100_000, accountId: "cash", destinationAccountId: "kbzpay" }), transactions, accountNames)).toBe("Cash only has 50,000 MMK available.");
+    expect(validateAvailableBalance(tx({ type: "income", amount: 1_000_000, accountId: "cash" }), transactions, accountNames)).toBeNull();
+  });
+
   it("delete and edit recalculate through source transactions", () => {
     const original = [
       tx({ id: "opening", type: "openingBalance", amount: 500_000, accountId: "cash" }),
@@ -97,6 +128,15 @@ describe("financeService", () => {
     ];
     expect(getMonthlyIncome(transactions, "2026-09")).toBe(100_000);
     expect(getMonthlyExpenses(transactions, "2026-09")).toBe(20_000);
+  });
+
+  it("monthly filtering uses transactionDateTime when present", () => {
+    const transactions = [
+      tx({ type: "income", amount: 100_000, date: "2026-08-31", transactionDateTime: "2026-09-01T03:10" })
+    ];
+    expect(getMonthlyIncome(transactions, "2026-09")).toBe(100_000);
+    expect(transactionDateKey(transactions[0])).toBe("2026-09-01");
+    expect(formatTransactionTime(transactions[0])).toBe("3:10 AM");
   });
 
   it("gets account transaction history for both transfer sides", () => {

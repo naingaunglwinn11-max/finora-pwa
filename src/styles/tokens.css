@@ -1,0 +1,29 @@
+:root {
+  --finora-space-1: 4px;
+  --finora-space-2: 8px;
+  --finora-space-3: 12px;
+  --finora-space-4: 16px;
+  --finora-space-5: 20px;
+  --finora-space-6: 24px;
+  --finora-space-8: 32px;
+
+  --finora-radius-sm: 10px;
+  --finora-radius-md: 14px;
+  --finora-radius-lg: 16px;
+  --finora-radius-xl: 22px;
+  --finora-radius-pill: 999px;
+
+  --finora-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --finora-text-page: 32px;
+  --finora-text-section: 18px;
+  --finora-text-card: 20px;
+  --finora-text-body: 15px;
+  --finora-text-meta: 13px;
+  --finora-text-label: 12px;
+  --finora-text-nav: 11px;
+
+  --finora-tap-min: 44px;
+  --finora-nav-height: 74px;
+  --finora-motion-fast: 150ms;
+  --finora-motion-standard: 200ms;
+}

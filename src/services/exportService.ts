@@ -1,19 +1,26 @@
 import type { Account, Category, FinanceTransaction } from "../types/finance";
+import { formatTransactionTime, transactionDateKey } from "../utils/dates";
 import { downloadFile } from "./backupService";
 
 export function exportTransactionsCsv(transactions: FinanceTransaction[], accounts: Account[], categories: Category[]): void {
   const accountNames = new Map(accounts.map((account) => [account.id, account.name]));
   const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
   const rows = [
-    ["Date", "Type", "Category", "Account", "Destination", "AmountMMK", "Note"],
+    ["Date", "Time", "Type", "Category", "Account", "Destination", "AmountMMK", "Note", "Source", "Merchant", "ExternalReference", "ExternalTransactionType", "RecipientMaskedAccount"],
     ...transactions.map((transaction) => [
-      transaction.date,
+      transactionDateKey(transaction),
+      formatTransactionTime(transaction),
       transaction.type,
       categoryNames.get(transaction.categoryId ?? "") ?? "",
       accountNames.get(transaction.accountId) ?? transaction.accountId,
       transaction.destinationAccountId ? accountNames.get(transaction.destinationAccountId) ?? transaction.destinationAccountId : "",
       String(transaction.amount),
-      transaction.note
+      transaction.note,
+      transaction.source === "kbzpayReceipt" ? "KBZPay Receipt" : "Manual",
+      transaction.merchant ?? "",
+      transaction.externalReference ?? "",
+      transaction.externalTransactionType ?? "",
+      transaction.recipientMaskedAccount ?? ""
     ])
   ];
 

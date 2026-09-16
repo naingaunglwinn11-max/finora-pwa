@@ -1,11 +1,12 @@
 import Dexie, { type Table } from "dexie";
-import type { Account, Category, FinanceTransaction, Settings } from "../types/finance";
+import type { Account, Category, FinanceTransaction, MerchantRule, Settings } from "../types/finance";
 import { defaultAccounts, defaultExpenseCategories, defaultIncomeCategories, defaultSettings } from "./schema";
 
 class FinoraDatabase extends Dexie {
   accounts!: Table<Account, string>;
   categories!: Table<Category, string>;
   transactions!: Table<FinanceTransaction, string>;
+  merchantRules!: Table<MerchantRule, string>;
   settings!: Table<Settings, string>;
 
   constructor() {
@@ -14,6 +15,21 @@ class FinoraDatabase extends Dexie {
       accounts: "id, systemIdentifier, name, isActive",
       categories: "id, type, name",
       transactions: "id, type, date, accountId, destinationAccountId, categoryId, createdAt, updatedAt",
+      merchantRules: "id, normalizedMerchant, categoryId, lastUsedAt",
+      settings: "id"
+    });
+    this.version(2).stores({
+      accounts: "id, systemIdentifier, name, isActive",
+      categories: "id, type, name",
+      transactions: "id, type, date, transactionDateTime, accountId, destinationAccountId, categoryId, createdAt, updatedAt",
+      merchantRules: "id, normalizedMerchant, categoryId, lastUsedAt",
+      settings: "id"
+    });
+    this.version(3).stores({
+      accounts: "id, systemIdentifier, name, isActive",
+      categories: "id, type, name",
+      transactions: "id, type, date, transactionDateTime, accountId, destinationAccountId, categoryId, source, externalReference, merchant, createdAt, updatedAt",
+      merchantRules: "id, normalizedMerchant, categoryId, lastUsedAt",
       settings: "id"
     });
   }

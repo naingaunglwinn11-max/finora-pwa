@@ -1,5 +1,5 @@
 import type { Account, AccountId, Category, FinanceTransaction, TransactionType } from "../types/finance";
-import { isInMonth } from "../utils/dates";
+import { isInMonth, transactionDateKey } from "../utils/dates";
 
 export function calculateAccountBalance(accountId: AccountId, transactions: FinanceTransaction[]): number {
   return transactions.reduce((balance, transaction) => {
@@ -21,15 +21,30 @@ export function calculateTotalBalance(accounts: Account[], transactions: Finance
   return accounts.reduce((total, account) => total + calculateAccountBalance(account.id, transactions), 0);
 }
 
+export function validateAvailableBalance(
+  transaction: Pick<FinanceTransaction, "id" | "type" | "amount" | "accountId" | "destinationAccountId">,
+  transactions: FinanceTransaction[],
+  accountNames: Record<AccountId, string>
+): string | null {
+  if (transaction.type !== "expense" && transaction.type !== "transfer") return null;
+
+  const sourceTransactions = transactions.filter((item) => item.id !== transaction.id);
+  const available = calculateAccountBalance(transaction.accountId, sourceTransactions);
+  if (transaction.amount <= available) return null;
+
+  const accountName = accountNames[transaction.accountId];
+  return `${accountName} only has ${new Intl.NumberFormat("en-US").format(available)} MMK available.`;
+}
+
 export function getMonthlyIncome(transactions: FinanceTransaction[], month: string): number {
   return transactions
-    .filter((transaction) => transaction.type === "income" && isInMonth(transaction.date, month))
+    .filter((transaction) => transaction.type === "income" && isInMonth(transactionDateKey(transaction), month))
     .reduce((total, transaction) => total + transaction.amount, 0);
 }
 
 export function getMonthlyExpenses(transactions: FinanceTransaction[], month: string): number {
   return transactions
-    .filter((transaction) => transaction.type === "expense" && isInMonth(transaction.date, month))
+    .filter((transaction) => transaction.type === "expense" && isInMonth(transactionDateKey(transaction), month))
     .reduce((total, transaction) => total + transaction.amount, 0);
 }
 
@@ -48,7 +63,7 @@ export function getExpensesByCategory(transactions: FinanceTransaction[], catego
   const totals = new Map<string, number>();
 
   for (const transaction of transactions) {
-    if (transaction.type !== "expense" || !isInMonth(transaction.date, month)) continue;
+    if (transaction.type !== "expense" || !isInMonth(transactionDateKey(transaction), month)) continue;
     const name = categoryNames.get(transaction.categoryId ?? "") ?? "Uncategorized";
     totals.set(name, (totals.get(name) ?? 0) + transaction.amount);
   }
@@ -71,5 +86,7 @@ export function transactionSign(type: TransactionType): "+" | "-" | "" {
 }
 
 export function compareNewestFirst(a: FinanceTransaction, b: FinanceTransaction): number {
-  return b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt);
+  const bDateTime = b.transactionDateTime ?? `${b.date}T12:00`;
+  const aDateTime = a.transactionDateTime ?? `${a.date}T12:00`;
+  return bDateTime.localeCompare(aDateTime) || b.createdAt.localeCompare(a.createdAt);
 }

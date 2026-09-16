@@ -30,9 +30,24 @@ export interface FinanceTransaction {
   destinationAccountId?: AccountId;
   categoryId?: string;
   date: string;
+  transactionDateTime?: string;
   note: string;
   createdAt: string;
   updatedAt: string;
+  source?: "manual" | "kbzpayReceipt";
+  merchant?: string;
+  externalReference?: string;
+  externalTransactionType?: string;
+  recipientMaskedAccount?: string;
+  importedAt?: string;
+}
+
+export interface MerchantRule {
+  id: string;
+  normalizedMerchant: string;
+  categoryId: string;
+  lastUsedAt: string;
+  usageCount: number;
 }
 
 export interface Settings {
@@ -50,4 +65,5 @@ export interface FinoraBackup {
   categories: Category[];
   transactions: FinanceTransaction[];
   settings: Settings;
+  merchantRules?: MerchantRule[];
 }

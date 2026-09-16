@@ -20,6 +20,21 @@ npm run preview
 
 The production build is written to `dist/` and can be hosted on any static HTTPS host such as Cloudflare Pages, GitHub Pages, Netlify, or Vercel.
 
+## Deploy To Cloudflare Pages
+
+Finora is a static PWA. Cloudflare Pages should build the app from GitHub and publish the generated `dist/` folder.
+
+Use these Cloudflare Pages settings:
+
+- Production branch: `main`
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Root directory: repository root, unless this app is placed inside a larger monorepo
+
+The repository does not need to commit `dist/`. Vite generates it during the Cloudflare build.
+
+`public/_redirects` provides the SPA fallback for direct route refreshes, and `public/_headers` keeps the service worker and manifest update-safe in production.
+
 ## Install On iPhone
 
 1. Open the deployed Finora URL in Safari.
@@ -36,6 +51,8 @@ Service workers require HTTPS in production. Localhost is allowed for developmen
 Financial records are stored in IndexedDB on the device in a database named `finoraDB`. Finora does not use a remote financial database, login, analytics, advertising, or third-party tracking.
 
 Deleting Safari website data, removing the PWA, or resetting the phone may remove local data. Export backups regularly.
+
+App updates replace only frontend files. They do not delete or bundle IndexedDB financial records, merchant rules, settings, or backup metadata.
 
 ## Backups
 
