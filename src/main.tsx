@@ -7,7 +7,12 @@ import "./styles/theme.css";
 import "./styles/components.css";
 import "./styles.css";
 
-registerSW({ immediate: true });
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    void updateSW(true);
+  }
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
