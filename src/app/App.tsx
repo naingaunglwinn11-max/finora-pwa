@@ -850,12 +850,15 @@ function TransactionSheet({
   const [receiptResult, setReceiptResult] = useState<KBZPayReceiptResult | null>(null);
   const [duplicateMatch, setDuplicateMatch] = useState<FinanceTransaction | null>(null);
   const [importAnyway, setImportAnyway] = useState(false);
+  const [entryMethod, setEntryMethod] = useState<"manual" | "receipt">("manual");
   const sheetRef = useRef<HTMLElement>(null);
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const closeTimerRef = useRef<number | null>(null);
   const dragRef = useRef({ pointerId: 0, startY: 0, lastY: 0, lastTime: 0, velocity: 0, currentY: 0 });
   const categories = snapshot.categories.filter((category) => category.type === (type === "income" ? "income" : "expense"));
   const parsedAmount = amountFromText(amount);
+  const canUseReceiptImport = !transaction && type !== "transfer" && accountId === "kbzpay";
+  const usingReceiptImport = canUseReceiptImport && entryMethod === "receipt";
   const valid = parsedAmount > 0 && Boolean(transactionDateTime) && (type === "transfer" ? accountId !== destinationAccountId : Boolean(categoryId));
   const hasUnsavedChanges = transaction
     ? amount !== formatAmountInput(String(transaction.amount))
@@ -876,6 +879,10 @@ function TransactionSheet({
     if (type === "transfer") setDestinationAccountId(accountId === "cash" ? "kbzpay" : "cash");
     if (type !== "transfer" && !categoryId) setCategoryId(categories[0]?.id ?? "");
   }, [accountId, type, categoryId, categories]);
+
+  useEffect(() => {
+    if (!canUseReceiptImport && entryMethod !== "manual") setEntryMethod("manual");
+  }, [canUseReceiptImport, entryMethod]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -958,7 +965,7 @@ function TransactionSheet({
       setError("Choose an amount, account, category, and date/time.");
       return;
     }
-    if (duplicateMatch && !importAnyway) {
+    if (usingReceiptImport && duplicateMatch && !importAnyway) {
       setError("This receipt may already be in Finora. Review it, then tap Import Anyway if this is a new transaction.");
       return;
     }
@@ -979,12 +986,12 @@ function TransactionSheet({
         note: note.trim(),
         createdAt: transaction?.createdAt ?? now,
         updatedAt: now,
-        source: receiptResult ? "kbzpayReceipt" : transaction?.source,
-        merchant: receiptResult?.merchant ?? transaction?.merchant,
-        externalReference: receiptResult?.transactionReference ?? transaction?.externalReference,
-        externalTransactionType: receiptResult?.externalTransactionType ?? transaction?.externalTransactionType,
-        recipientMaskedAccount: receiptResult?.recipientMaskedAccount ?? transaction?.recipientMaskedAccount,
-        importedAt: receiptResult ? now : transaction?.importedAt
+        source: usingReceiptImport && receiptResult ? "kbzpayReceipt" : transaction?.source ?? "manual",
+        merchant: usingReceiptImport ? receiptResult?.merchant : transaction?.merchant,
+        externalReference: usingReceiptImport ? receiptResult?.transactionReference : transaction?.externalReference,
+        externalTransactionType: usingReceiptImport ? receiptResult?.externalTransactionType : transaction?.externalTransactionType,
+        recipientMaskedAccount: usingReceiptImport ? receiptResult?.recipientMaskedAccount : transaction?.recipientMaskedAccount,
+        importedAt: usingReceiptImport && receiptResult ? now : transaction?.importedAt
       };
       const accountNames = Object.fromEntries(snapshot.accounts.map((account) => [account.id, account.name])) as Record<AccountId, string>;
       const balanceError = validateAvailableBalance(row, snapshot.transactions, accountNames);
@@ -993,7 +1000,7 @@ function TransactionSheet({
         return;
       }
       await db.transactions.put(row);
-      if (receiptResult?.merchant && row.categoryId) await rememberMerchantCategory(receiptResult.merchant, row.categoryId);
+      if (usingReceiptImport && receiptResult?.merchant && row.categoryId) await rememberMerchantCategory(receiptResult.merchant, row.categoryId);
       requestClose({ force: true, afterClose: onSaved });
     } catch {
       setError("Finora couldn't save this transaction. Please try again.");
@@ -1044,9 +1051,9 @@ function TransactionSheet({
       const category = await getMerchantCategorySuggestion(result.merchant, snapshot.categories, nextType, result.note);
       setType(nextType);
       setAccountId("kbzpay");
-      setAmount(nextAmount);
-      setTransactionDateTime(nextDateTime);
-      setNote(result.note ?? result.merchant ?? "");
+      setAmount((current) => current.trim() ? current : nextAmount);
+      setTransactionDateTime((current) => current || nextDateTime);
+      setNote((current) => current.trim() ? current : result.note ?? result.merchant ?? "");
       if (category) setCategoryId(category);
       if (result.amount) {
         setDuplicateMatch(findLikelyKBZPayDuplicate({
@@ -1124,6 +1131,20 @@ function TransactionSheet({
           <>
             <label className="label">Account</label>
             <AccountButtons accounts={snapshot.accounts} selected={accountId} onChange={setAccountId} balances={balances} />
+            {canUseReceiptImport && (
+              <div className="entry-method">
+                <label className="label">Entry Method</label>
+                <Segmented
+                  value={entryMethod}
+                  options={["manual", "receipt"]}
+                  onChange={(value) => {
+                    setEntryMethod(value as "manual" | "receipt");
+                    setError("");
+                    setImportError("");
+                  }}
+                />
+              </div>
+            )}
             <label className="field">
               <span>Category</span>
               <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
@@ -1158,31 +1179,34 @@ function TransactionSheet({
             </dl>
           </section>
         )}
-        {!transaction && (
+        {usingReceiptImport && (
           <section className="kbzpay-import-card">
             <div>
               <AccountIcon account={snapshot.accounts.find((account) => account.id === "kbzpay") ?? snapshot.accounts[0]} size={34} />
               <span>
                 <b>KBZPay Receipt</b>
-                <small>Receipt images are processed on this device and are not uploaded by Finora.</small>
+                <small>Choose a screenshot to auto-fill this form, or switch back to Manual.</small>
               </span>
             </div>
             <button type="button" onClick={() => receiptInputRef.current?.click()} disabled={Boolean(importStatus)}>
-              {importStatus ? "Reading..." : "Import Receipt"}
+              {importStatus ? "Reading..." : "Choose KBZPay Receipt"}
             </button>
             <input ref={receiptInputRef} hidden type="file" accept="image/*" onChange={(event) => void importReceipt(event.target.files?.[0])} />
           </section>
         )}
-        {importStatus && <p className="hint">{importStatus}</p>}
-        {importError && (
+        {usingReceiptImport && importStatus && <p className="hint">{importStatus}</p>}
+        {usingReceiptImport && importError && (
           <div className="receipt-warning">
             <b>We couldn't read this receipt.</b>
             <p>{importError}</p>
             <button type="button" onClick={() => receiptInputRef.current?.click()}>Try Another Image</button>
-            <button type="button" onClick={() => setImportError("")}>Enter Manually</button>
+            <button type="button" onClick={() => {
+              setEntryMethod("manual");
+              setImportError("");
+            }}>Enter Manually</button>
           </div>
         )}
-        {receiptResult && (
+        {usingReceiptImport && receiptResult && (
           <section className="receipt-review-card">
             <h3>KBZPay Receipt</h3>
             {receiptResult.warnings.map((warning) => <p className="receipt-warning-line" key={warning}>{warning}</p>)}
