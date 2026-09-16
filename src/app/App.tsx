@@ -881,7 +881,10 @@ function TransactionSheet({
   }, [accountId, type, categoryId, categories]);
 
   useEffect(() => {
-    if (!canUseReceiptImport && entryMethod !== "manual") setEntryMethod("manual");
+    if (!canUseReceiptImport) {
+      if (entryMethod !== "manual") setEntryMethod("manual");
+      clearReceiptImport();
+    }
   }, [canUseReceiptImport, entryMethod]);
 
   useEffect(() => {
@@ -1076,6 +1079,7 @@ function TransactionSheet({
     setDuplicateMatch(null);
     setImportAnyway(false);
     setImportError("");
+    setImportStatus("");
   }
 
   return (
