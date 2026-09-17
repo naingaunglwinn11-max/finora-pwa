@@ -15,8 +15,8 @@ export default defineConfig({
         description: "Local-first personal finance for Cash and KBZPay.",
         display: "standalone",
         orientation: "portrait-primary",
-        start_url: "/",
-        scope: "/",
+        start_url: "./",
+        scope: "./",
         theme_color: "#053f39",
         background_color: "#f4faf7",
         icons: [
