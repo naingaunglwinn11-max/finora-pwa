@@ -1201,16 +1201,19 @@ function TransactionSheet({
         )}
         {showReceiptImport && (
           <section className="kbzpay-import-card">
-            <div>
+            <div className="kbzpay-import-card-header">
               <AccountIcon account={snapshot.accounts.find((account) => account.id === "kbzpay") ?? snapshot.accounts[0]} size={34} />
-              <span>
+              <div>
                 <b>KBZPay Receipt</b>
-                <small>Choose a screenshot to auto-fill this form, or switch back to Manual.</small>
-              </span>
+                <small>Import transaction details</small>
+              </div>
             </div>
-            <button type="button" onClick={() => receiptInputRef.current?.click()} disabled={Boolean(importStatus)}>
-              {importStatus ? "Reading..." : "Choose KBZPay Receipt"}
+            <p>Choose a KBZPay receipt screenshot and Finora will fill in the transaction details for you.</p>
+            <button className="receipt-import-action" type="button" onClick={() => receiptInputRef.current?.click()} disabled={Boolean(importStatus)}>
+              <ReceiptUploadIcon />
+              <span>{importStatus ? "Reading..." : "Import Receipt"}</span>
             </button>
+            <small className="receipt-private-note"><ReceiptShieldIcon />Processed privately on this device.</small>
             <input ref={receiptInputRef} hidden type="file" accept="image/*" onChange={(event) => void importReceipt(event.target.files?.[0])} />
           </section>
         )}
@@ -1317,6 +1320,27 @@ function AccountButtons({
         </button>
       ))}
     </div>
+  );
+}
+
+function ReceiptUploadIcon() {
+  const common = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, strokeWidth: 2 };
+  return (
+    <svg className="receipt-action-icon" aria-hidden="true" viewBox="0 0 24 24">
+      <rect {...common} x="4" y="5" width="16" height="14" rx="3" />
+      <path {...common} d="m8 14 2.5-2.5 2 2L15 11l3 3" />
+      <path {...common} d="M9 9h.01" />
+    </svg>
+  );
+}
+
+function ReceiptShieldIcon() {
+  const common = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, strokeWidth: 2 };
+  return (
+    <svg className="receipt-private-icon" aria-hidden="true" viewBox="0 0 24 24">
+      <path {...common} d="M12 3 6 5.5v5.2c0 4.1 2.4 7.3 6 9.3 3.6-2 6-5.2 6-9.3V5.5z" />
+      <path {...common} d="m9 12 2 2 4-5" />
+    </svg>
   );
 }
 

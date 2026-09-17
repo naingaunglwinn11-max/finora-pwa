@@ -926,17 +926,33 @@ input:focus, select:focus {
 
 .kbzpay-import-card {
   display: grid;
-  gap: var(--finora-space-3);
+  gap: 14px;
   margin-top: var(--finora-space-3);
-  padding: var(--finora-space-3);
-  border-radius: var(--finora-radius-lg);
-  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+  box-shadow: var(--finora-shadow-sm);
 }
 
-.kbzpay-import-card > div {
+.kbzpay-import-card-header {
   display: flex;
   align-items: center;
-  gap: var(--finora-space-3);
+  gap: 12px;
+  min-width: 0;
+}
+
+.kbzpay-import-card-header > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kbzpay-import-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .kbzpay-import-card b,
@@ -944,6 +960,12 @@ input:focus, select:focus {
 .receipt-duplicate b,
 .receipt-warning b {
   color: var(--text);
+}
+
+.kbzpay-import-card b {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .kbzpay-import-card small,
@@ -956,14 +978,57 @@ input:focus, select:focus {
   font-size: var(--finora-text-meta);
 }
 
-.kbzpay-import-card button,
+.kbzpay-import-card-header small {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.receipt-import-action,
 .receipt-warning button,
 .receipt-duplicate button {
-  min-height: 42px;
-  border-radius: var(--finora-radius-md);
-  background: var(--finora-surface-raised);
+  min-height: 44px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 11%, var(--finora-surface-raised));
   color: var(--accent);
-  font-weight: 850;
+  font-weight: 800;
+}
+
+.receipt-import-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  font-size: 16px;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.receipt-import-action:active {
+  transform: scale(0.98);
+  background: color-mix(in srgb, var(--accent) 16%, var(--finora-surface-raised));
+}
+
+.receipt-action-icon {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.receipt-private-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.25;
+}
+
+.receipt-private-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
 }
 
 .kbzpay-import-card button:disabled {
