@@ -1082,6 +1082,22 @@ function TransactionSheet({
     setImportStatus("");
   }
 
+  function chooseTransactionType(nextType: TransactionType) {
+    setType(nextType);
+    if (nextType === "transfer") {
+      setEntryMethod("manual");
+      clearReceiptImport();
+    }
+  }
+
+  function chooseAccount(nextAccountId: AccountId) {
+    setAccountId(nextAccountId);
+    if (nextAccountId !== "kbzpay") {
+      setEntryMethod("manual");
+      clearReceiptImport();
+    }
+  }
+
   return (
     <div
       className={`sheet-backdrop ${closing ? "closing" : ""}`}
@@ -1121,12 +1137,12 @@ function TransactionSheet({
             ×
           </button>
         </header>
-        <Segmented value={type} options={["expense", "income", "transfer"]} onChange={(value) => setType(value as TransactionType)} />
+        <Segmented value={type} options={["expense", "income", "transfer"]} onChange={(value) => chooseTransactionType(value as TransactionType)} />
         <AmountInput value={amount} onChange={setAmount} autoFocus />
         {type === "transfer" ? (
           <section className="transfer-box">
             <b>From</b>
-            <AccountButtons accounts={snapshot.accounts} selected={accountId} onChange={setAccountId} />
+            <AccountButtons accounts={snapshot.accounts} selected={accountId} onChange={chooseAccount} />
             <button className="swap-button" type="button" onClick={() => setAccountId(destinationAccountId)}>Swap</button>
             <b>To</b>
             <div className="locked-account">{snapshot.accounts.find((account) => account.id === destinationAccountId)?.name}</div>
@@ -1134,7 +1150,7 @@ function TransactionSheet({
         ) : (
           <>
             <label className="label">Account</label>
-            <AccountButtons accounts={snapshot.accounts} selected={accountId} onChange={setAccountId} balances={balances} />
+            <AccountButtons accounts={snapshot.accounts} selected={accountId} onChange={chooseAccount} balances={balances} />
             {canUseReceiptImport && (
               <div className="entry-method">
                 <label className="label">Entry Method</label>
