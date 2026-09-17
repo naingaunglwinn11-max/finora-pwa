@@ -859,6 +859,9 @@ function TransactionSheet({
   const parsedAmount = amountFromText(amount);
   const canUseReceiptImport = !transaction && type !== "transfer" && accountId === "kbzpay";
   const showReceiptImport = canUseReceiptImport && entryMethod === "receipt";
+  const sourceTransactions = transaction ? snapshot.transactions.filter((item) => item.id !== transaction.id) : snapshot.transactions;
+  const selectedAccountBalance = transaction ? calculateAccountBalance(accountId, sourceTransactions) : balances[accountId];
+  const hasInsufficientBalance = type === "expense" && parsedAmount > 0 && parsedAmount > selectedAccountBalance;
   const valid = parsedAmount > 0 && Boolean(transactionDateTime) && (type === "transfer" ? accountId !== destinationAccountId : Boolean(categoryId));
   const hasUnsavedChanges = transaction
     ? amount !== formatAmountInput(String(transaction.amount))
@@ -1139,6 +1142,7 @@ function TransactionSheet({
         </header>
         <Segmented value={type} options={["expense", "income", "transfer"]} onChange={(value) => chooseTransactionType(value as TransactionType)} />
         <AmountInput value={amount} onChange={setAmount} autoFocus />
+        {hasInsufficientBalance && <p className="balance-warning">Only {formatMMK(selectedAccountBalance)} available.</p>}
         {type === "transfer" ? (
           <section className="transfer-box">
             <b>From</b>
@@ -1165,6 +1169,43 @@ function TransactionSheet({
                 />
               </div>
             )}
+            {showReceiptImport && (
+              <section className={`kbzpay-import-card ${importStatus ? "loading" : receiptResult ? "success" : importError ? "error-state" : ""}`}>
+                <div className="kbzpay-import-card-header">
+                  <AccountIcon account={snapshot.accounts.find((account) => account.id === "kbzpay") ?? snapshot.accounts[0]} size={34} />
+                  <div>
+                    <b>KBZPay Receipt</b>
+                    <small>{importStatus ? "Reading receipt..." : receiptResult ? "Details filled from receipt" : importError ? "Couldn't read this receipt." : "Import transaction details"}</small>
+                  </div>
+                </div>
+                {!receiptResult && !importError && (
+                  <p>{importStatus ? "Finora is scanning the screenshot on this device." : "Choose a receipt screenshot and Finora will fill in the transaction details for you."}</p>
+                )}
+                {receiptResult && (
+                  <p className="receipt-success-line"><ReceiptCheckIcon />Receipt imported</p>
+                )}
+                <div className={importError ? "receipt-error-actions" : undefined}>
+                  <button className="receipt-import-action" type="button" onClick={() => receiptInputRef.current?.click()} disabled={Boolean(importStatus)}>
+                    {importStatus ? <ReceiptSpinnerIcon /> : <ReceiptUploadIcon />}
+                    <span>{importStatus ? "Reading receipt..." : receiptResult ? "Replace Receipt" : importError ? "Try Again" : "Import Receipt"}</span>
+                  </button>
+                  {importError && (
+                    <button
+                      className="receipt-manual-action"
+                      type="button"
+                      onClick={() => {
+                        setEntryMethod("manual");
+                        setImportError("");
+                      }}
+                    >
+                      Switch to Manual
+                    </button>
+                  )}
+                </div>
+                <small className="receipt-private-note"><ReceiptShieldIcon />Processed privately on this device.</small>
+                <input ref={receiptInputRef} hidden type="file" accept="image/*" onChange={(event) => void importReceipt(event.target.files?.[0])} />
+              </section>
+            )}
             <label className="field">
               <span>Category</span>
               <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
@@ -1173,7 +1214,6 @@ function TransactionSheet({
             </label>
           </>
         )}
-        {type !== "income" && <p className="hint">{snapshot.accounts.find((account) => account.id === accountId)?.name} · {formatMMK(balances[accountId])} available</p>}
         <div className="field date-time-field">
           <span>Date & Time</span>
           <button
@@ -1199,37 +1239,7 @@ function TransactionSheet({
             </dl>
           </section>
         )}
-        {showReceiptImport && (
-          <section className="kbzpay-import-card">
-            <div className="kbzpay-import-card-header">
-              <AccountIcon account={snapshot.accounts.find((account) => account.id === "kbzpay") ?? snapshot.accounts[0]} size={34} />
-              <div>
-                <b>KBZPay Receipt</b>
-                <small>Import transaction details</small>
-              </div>
-            </div>
-            <p>Choose a KBZPay receipt screenshot and Finora will fill in the transaction details for you.</p>
-            <button className="receipt-import-action" type="button" onClick={() => receiptInputRef.current?.click()} disabled={Boolean(importStatus)}>
-              <ReceiptUploadIcon />
-              <span>{importStatus ? "Reading..." : "Import Receipt"}</span>
-            </button>
-            <small className="receipt-private-note"><ReceiptShieldIcon />Processed privately on this device.</small>
-            <input ref={receiptInputRef} hidden type="file" accept="image/*" onChange={(event) => void importReceipt(event.target.files?.[0])} />
-          </section>
-        )}
-        {showReceiptImport && importStatus && <p className="hint">{importStatus}</p>}
-        {showReceiptImport && importError && (
-          <div className="receipt-warning">
-            <b>We couldn't read this receipt.</b>
-            <p>{importError}</p>
-            <button type="button" onClick={() => receiptInputRef.current?.click()}>Try Another Image</button>
-            <button type="button" onClick={() => {
-              setEntryMethod("manual");
-              setImportError("");
-            }}>Enter Manually</button>
-          </div>
-        )}
-        {showReceiptImport && receiptResult && (
+        {showReceiptImport && receiptResult && (receiptResult.warnings.length > 0 || duplicateMatch) && (
           <section className="receipt-review-card">
             <h3>KBZPay Receipt</h3>
             {receiptResult.warnings.map((warning) => <p className="receipt-warning-line" key={warning}>{warning}</p>)}
@@ -1313,10 +1323,11 @@ function AccountButtons({
   return (
     <div className="account-selector">
       {accounts.map((account) => (
-        <button type="button" key={account.id} className={selected === account.id ? "selected" : ""} onClick={() => onChange(account.id)}>
+        <button type="button" key={account.id} className={selected === account.id ? "selected" : ""} onClick={() => onChange(account.id)} aria-pressed={selected === account.id}>
           <AccountIcon account={account} size={32} />
           <span>{account.name}</span>
           {balances && <small>{formatMMK(balances[account.id])}</small>}
+          {selected === account.id && <i className="account-selected-check" aria-hidden="true">✓</i>}
         </button>
       ))}
     </div>
@@ -1344,11 +1355,25 @@ function ReceiptShieldIcon() {
   );
 }
 
+function ReceiptCheckIcon() {
+  const common = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, strokeWidth: 2 };
+  return (
+    <svg className="receipt-state-icon" aria-hidden="true" viewBox="0 0 24 24">
+      <circle {...common} cx="12" cy="12" r="9" />
+      <path {...common} d="m8 12 2.5 2.5L16 9" />
+    </svg>
+  );
+}
+
+function ReceiptSpinnerIcon() {
+  return <span className="receipt-spinner" aria-hidden="true" />;
+}
+
 function Segmented({ value, options, labels = {}, onChange }: { value: string; options: string[]; labels?: Record<string, string>; onChange: (value: string) => void }) {
   return (
     <div className="segmented">
       {options.map((option) => (
-        <button key={option} type="button" className={value === option ? "selected" : ""} onClick={() => onChange(option)}>
+        <button key={option} type="button" className={value === option ? "selected" : ""} onClick={() => onChange(option)} aria-pressed={value === option}>
           {labels[option] ?? titleCase(option)}
         </button>
       ))}
